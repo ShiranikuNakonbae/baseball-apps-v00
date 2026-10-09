@@ -9,7 +9,7 @@ export function TeamForm({ team }: { team?: Team }) {
   return (
     <form action={saveTeam} className="flex flex-col gap-3">
       {team ? <input type="hidden" name="id" value={team.id} /> : null}
-      <Field label="Team name" name="name" defaultValue={team?.name ?? ""} required placeholder="Blue Jays" />
+      <Field label="Team name" name="name" defaultValue={team?.name ?? ""} required placeholder="Thunder" />
       <Field
         label="Division"
         name="division"

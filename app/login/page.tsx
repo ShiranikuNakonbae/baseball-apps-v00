@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { sendMagicLink, signIn, signUp, type FormState } from "@/app/actions/auth";
@@ -18,7 +18,7 @@ function Message({ state }: { state: FormState }) {
   return null;
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/";
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -124,5 +124,22 @@ export default function LoginPage() {
         </p>
       ) : null}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col gap-6 pt-6">
+          <header>
+            <h1 className="text-2xl font-bold">Club Baseball</h1>
+            <p className="muted">Loading...</p>
+          </header>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

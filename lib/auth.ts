@@ -26,10 +26,17 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const inserted = await supabase.from("profiles").insert({
     id: user.id,
     email: user.email,
-    full_name: user.email.split("@")[0],
+    full_name: (user.user_metadata?.full_name as string) || user.email.split("@")[0],
     role: "parent",
   });
-  if (inserted.error) return null;
+  if (inserted.error) {
+    const retry = await supabase
+      .from("profiles")
+      .select("id, email, full_name, phone_number, role")
+      .eq("id", user.id)
+      .maybeSingle();
+    return (retry.data as Profile) ?? null;
+  }
 
   const created = await supabase
     .from("profiles")

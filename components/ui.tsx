@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 export function ErrorBanner({ message }: { message?: string | string[] }) {
   const text = Array.isArray(message) ? message[0] : message;
@@ -15,9 +16,9 @@ export function SectionTitle({ children, href, hrefLabel }: { children: ReactNod
     <div className="row-between">
       <h2 className="card-title">{children}</h2>
       {href ? (
-        <a href={href} className="link text-xs">
+        <Link href={href} className="link text-xs">
           {hrefLabel ?? "View"}
-        </a>
+        </Link>
       ) : null}
     </div>
   );

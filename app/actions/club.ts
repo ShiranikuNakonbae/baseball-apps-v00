@@ -46,7 +46,8 @@ function count(form: FormData, field: string, athleteId: string): number {
   const raw = text(form, `${field}_${athleteId}`);
   if (raw === "") return 0;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return field === "innings_pitched" ? parsed : Math.round(parsed);
 }
 
 function int(form: FormData, key: string): number {
@@ -127,6 +128,9 @@ export async function saveEvent(form: FormData) {
   if (eventId) {
     const { error } = await supabase.from("events").update(row).eq("id", eventId);
     if (error) back(path, error.message);
+    revalidatePath(path);
+    revalidatePath("/");
+    back(path);
   } else {
     const { data, error } = await supabase
       .from("events")
@@ -137,9 +141,6 @@ export async function saveEvent(form: FormData) {
     revalidatePath("/");
     back(`/events/${data.id}`);
   }
-
-  revalidatePath("/");
-  back(`/events/${eventId}`);
 }
 
 export async function deleteEvent(form: FormData) {
@@ -151,6 +152,7 @@ export async function deleteEvent(form: FormData) {
   const { error } = await supabase.from("events").delete().eq("id", eventId);
   if (error) back("/", error.message);
   revalidatePath("/");
+  revalidatePath("/roster");
   back("/");
 }
 
@@ -181,10 +183,11 @@ export async function saveAttendance(form: FormData) {
   if (!eventId) back("/", "That attendance sheet was malformed.");
   const profile = await requireStaff();
 
-  const athleteIds = form
+  const rawAthleteIds = form
     .getAll("athlete_ids")
     .map((value) => (UUID.test(String(value)) ? String(value) : ""))
     .filter(Boolean);
+  const athleteIds = Array.from(new Set(rawAthleteIds));
 
   const present: { event_id: string; athlete_id: string; status: AttendanceStatus; logged_by: string }[] = [];
   const cleared: string[] = [];
@@ -217,10 +220,11 @@ export async function saveBoxScore(form: FormData) {
   if (!eventId) back("/", "That box score was malformed.");
   const profile = await requireStaff();
 
-  const athleteIds = form
+  const rawAthleteIds = form
     .getAll("athlete_ids")
     .map((value) => (UUID.test(String(value)) ? String(value) : ""))
     .filter(Boolean);
+  const athleteIds = Array.from(new Set(rawAthleteIds));
   if (athleteIds.length === 0) back(path, "No roster loaded for this event.");
 
   const written: (BattingLine & { logged_by: string })[] = [];
@@ -259,6 +263,7 @@ export async function saveBoxScore(form: FormData) {
 
   revalidatePath(path);
   revalidatePath("/roster");
+  revalidatePath("/family");
   back(path);
 }
 
@@ -279,6 +284,7 @@ export async function saveTeam(form: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/roster");
+  revalidatePath("/");
   back("/admin");
 }
 
@@ -293,6 +299,7 @@ export async function deleteTeam(form: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/roster");
+  revalidatePath("/");
   back("/admin");
 }
 
@@ -305,50 +312,72 @@ export async function saveAthlete(form: FormData) {
   const next = safeNext(text(form, "next"), athleteId ? `/athletes/${athleteId}` : "/roster");
 
   if (!firstName || !lastName) back(next, "First and last name are required.");
-  if (rawTeam && !teamId) back(next, "Pick a team for this athlete.");
+  if (rawTeam && !teamId && rawTeam !== "") back(next, "Pick a team for this athlete.");
   const profile = await requireRole(["admin", "coach"], next);
   const isAdmin = profile.role === "admin";
 
-  const row = {
+  const rawDob = text(form, "date_of_birth");
+  const dob = /^\d{4}-\d{2}-\d{2}$/.test(rawDob) ? rawDob : null;
+
+  const row: {
+    first_name: string;
+    last_name: string;
+    jersey_number: number | null;
+    primary_position: string | null;
+    secondary_position: string | null;
+    bats: (typeof SIDES)[number];
+    throws: (typeof SIDES)[number];
+    date_of_birth: string | null;
+    team_id?: string | null;
+  } = {
     first_name: firstName,
     last_name: lastName,
-    team_id: teamId || null,
     jersey_number: text(form, "jersey_number") ? int(form, "jersey_number") : null,
     primary_position: text(form, "primary_position") || null,
     secondary_position: text(form, "secondary_position") || null,
     bats: pick(text(form, "bats"), SIDES) || "right",
     throws: pick(text(form, "throws"), SIDES) || "right",
-    date_of_birth: text(form, "date_of_birth") || null,
+    date_of_birth: dob,
   };
+
+  if (isAdmin) {
+    row.team_id = teamId || null;
+  }
 
   const supabase = await createClient();
   if (athleteId) {
-    // Coaches edit their own roster; only admins can move an athlete between teams.
     const { error } = await supabase
       .from("athletes")
-      .update(isAdmin ? row : { ...row, team_id: undefined })
+      .update(row)
       .eq("id", athleteId);
     if (error) back(next, error.message);
   } else {
     if (!isAdmin) back(next, "Only club management can add athletes.");
-    const { error } = await supabase.from("athletes").insert(row);
+    const { error } = await supabase.from("athletes").insert({ ...row, team_id: teamId || null });
     if (error) back(next, error.message);
   }
 
   revalidatePath("/roster");
+  revalidatePath("/admin");
+  revalidatePath("/family");
+  revalidatePath("/");
+  if (athleteId) revalidatePath(`/athletes/${athleteId}`);
   back(next);
 }
 
 export async function deleteAthlete(form: FormData) {
   const athleteId = uuid(form, "id");
   if (!athleteId) back("/roster", "That athlete is missing.");
-  await requireStaff();
+  await requireAdmin();
 
   const supabase = await createClient();
   const { error } = await supabase.from("athletes").delete().eq("id", athleteId);
   if (error) back("/roster", error.message);
 
   revalidatePath("/roster");
+  revalidatePath("/admin");
+  revalidatePath("/family");
+  revalidatePath("/");
   back("/roster");
 }
 
@@ -376,6 +405,8 @@ export async function linkParent(form: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/roster");
+  revalidatePath("/family");
+  revalidatePath("/");
   back("/admin");
 }
 
@@ -394,6 +425,9 @@ export async function unlinkParent(form: FormData) {
   if (error) back("/admin", error.message);
 
   revalidatePath("/admin");
+  revalidatePath("/roster");
+  revalidatePath("/family");
+  revalidatePath("/");
   back("/admin");
 }
 
@@ -411,6 +445,8 @@ export async function assignCoach(form: FormData) {
   if (error) back("/admin", error.message);
 
   revalidatePath("/admin");
+  revalidatePath("/roster");
+  revalidatePath("/");
   back("/admin");
 }
 
@@ -425,19 +461,26 @@ export async function unassignCoach(form: FormData) {
   if (error) back("/admin", error.message);
 
   revalidatePath("/admin");
+  revalidatePath("/roster");
+  revalidatePath("/");
   back("/admin");
 }
 
 export async function setProfileRole(form: FormData) {
   const userId = uuid(form, "user_id");
   const role = pick(text(form, "role"), ROLES) || "parent";
-  await requireAdmin();
+  const profile = await requireAdmin();
   if (!userId) back("/admin", "That account is missing.");
+  if (userId === profile.id && role !== "admin") {
+    back("/admin", "You cannot remove your own admin role.");
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ role }).eq("id", userId);
   if (error) back("/admin", error.message);
 
   revalidatePath("/admin");
+  revalidatePath("/roster");
+  revalidatePath("/");
   back("/admin");
 }

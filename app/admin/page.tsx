@@ -115,7 +115,7 @@ export default async function AdminPage({
                           name="user_id"
                           options={
                             coaches.length > 0
-                              ? coaches.map((c) => ({ value: c.id, label: `${c.full_name} (${c.email})` }))
+                              ? [{ value: "", label: "Select coach..." }, ...coaches.map((c) => ({ value: c.id, label: `${c.full_name} (${c.email})` }))]
                               : [{ value: "", label: "No coach accounts — set a role below first" }]
                           }
                         />
@@ -149,7 +149,7 @@ export default async function AdminPage({
                 name="athlete_id"
                 options={
                   athletes.length > 0
-                    ? athletes.map((a) => ({ value: a.id, label: `${athleteName(a)}${teamLabel(a)}` }))
+                    ? [{ value: "", label: "Select athlete..." }, ...athletes.map((a) => ({ value: a.id, label: `${athleteName(a)}${teamLabel(a)}` }))]
                     : [{ value: "", label: "No athletes yet" }]
                 }
               />
@@ -158,8 +158,8 @@ export default async function AdminPage({
                 name="parent_id"
                 options={
                   parents.length > 0
-                    ? parents.map((p) => ({ value: p.id, label: `${p.full_name} (${p.email})` }))
-                    : [{ value: "", label: "No parent accounts yet" }]
+                    ? [{ value: "", label: "Select account (or enter email below)" }, ...parents.map((p) => ({ value: p.id, label: `${p.full_name} (${p.email})` }))]
+                    : [{ value: "", label: "No parent accounts yet (or enter email below)" }]
                 }
               />
               <div>

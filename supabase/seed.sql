@@ -11,9 +11,9 @@
 
 CREATE TEMP TABLE _demo_accounts (email TEXT, role public.user_role);
 INSERT INTO _demo_accounts (email, role) VALUES
-    ('admin@yourclub.com',  'admin'),
-    ('coach@yourclub.com',  'coach'),
-    ('parent@yourclub.com', 'parent');
+    ('atsuiyakan@gmail.com', 'admin'),
+    ('coach@yourclub.com',   'coach'),
+    ('parent@yourclub.com',  'parent');
 
 DO $$
 DECLARE missing TEXT;
