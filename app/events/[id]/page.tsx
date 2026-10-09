@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { deleteEvent, saveAttendance, saveBoxScore, setRsvp } from "@/app/actions/club";
+import { deleteEvent, saveAttendance, savePlayerBoxScore, setRsvp } from "@/app/actions/club";
 import { EventForm } from "@/components/event-form";
 import { EmptyState, ErrorBanner, SectionTitle } from "@/components/ui";
 import { requireProfile } from "@/lib/auth";
 import { getAthletesForParent, getEventBundle, getTeams } from "@/lib/data";
-import { athleteName, formatDate, formatTimeRange } from "@/lib/format";
+import { athleteName, formatDate, formatTimeRange, hits } from "@/lib/format";
 import { ATTENDANCE_STATUSES, RSVP_STATUSES } from "@/lib/types";
 import type { Athlete, BattingLine } from "@/lib/types";
 
@@ -98,23 +98,47 @@ export default async function EventPage({
 
       {isStaff ? (
         <section className="flex flex-col gap-2">
-          <SectionTitle>Headcount</SectionTitle>
-          <div className="card card-body flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <span>
-              <b className="text-club-good">{counts.present}</b> present
-            </span>
-            <span>
-              <b className="text-club-accent">{counts.late}</b> late
-            </span>
-            <span>
-              <b>{counts.excused}</b> excused
-            </span>
-            <span>
-              <b className="text-club-bad">{counts.unexcused}</b> unexcused
-            </span>
-            <span className="muted">
-              {rsvps.filter((r) => r.status === "attending").length} attending by RSVP
-            </span>
+          <SectionTitle>Headcount &amp; RSVP responses</SectionTitle>
+          <div className="card card-body flex flex-col gap-3">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <span>
+                <b className="text-club-good">{counts.present}</b> present
+              </span>
+              <span>
+                <b className="text-club-accent">{counts.late}</b> late
+              </span>
+              <span>
+                <b>{counts.excused}</b> excused
+              </span>
+              <span>
+                <b className="text-club-bad">{counts.unexcused}</b> unexcused
+              </span>
+              <span className="muted">
+                {rsvps.filter((r) => r.status === "attending").length} attending by RSVP
+              </span>
+            </div>
+
+            {roster.length > 0 ? (
+              <div className="border-t border-club-line/70 pt-2.5">
+                <p className="stat-label mb-2">Roster RSVP Responses</p>
+                <div className="flex flex-col gap-1.5">
+                  {roster.map((athlete) => {
+                    const status = rsvpOf.get(athlete.id);
+                    return (
+                      <div key={athlete.id} className="row-between gap-2 border-b border-club-line/40 pb-1 text-xs last:border-0 last:pb-0">
+                        <Link href={`/athletes/${athlete.id}`} className="font-semibold hover:underline">
+                          {athleteName(athlete)}
+                          {athlete.jersey_number !== null ? <span className="muted"> #{athlete.jersey_number}</span> : null}
+                        </Link>
+                        <span className={`font-bold uppercase ${status === "attending" ? "text-club-good" : status === "not_attending" ? "text-club-bad" : "text-club-muted"}`}>
+                          {status ? RSVP_LABEL[status] : "No response"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -139,19 +163,19 @@ export default async function EventPage({
       {isStaff && roster.length > 0 ? (
         <section className="flex flex-col gap-2">
           <SectionTitle>Box score</SectionTitle>
-          <form action={saveBoxScore} className="card card-body flex flex-col gap-2">
-            <input type="hidden" name="event_id" value={event.id} />
+          <p className="muted text-xs">
+            Enter and save stats individually for each player. Leave all fields empty and save to clear a player&apos;s line.
+          </p>
+          <div className="flex flex-col gap-2">
             {roster.map((athlete) => (
-              <input key={athlete.id} type="hidden" name="athlete_ids" value={athlete.id} />
+              <PlayerBoxScoreForm
+                key={athlete.id}
+                eventId={event.id}
+                athlete={athlete}
+                line={lineOf.get(athlete.id)}
+              />
             ))}
-            <p className="muted">
-              Leave every field blank for a player who did not appear — that clears their line.
-            </p>
-            {roster.map((athlete) => (
-              <BoxScoreRow key={athlete.id} athlete={athlete} line={lineOf.get(athlete.id)} />
-            ))}
-            <button className="btn-primary">Save box score</button>
-          </form>
+          </div>
         </section>
       ) : null}
 
@@ -258,40 +282,64 @@ const PITCH_INPUTS: { field: keyof BattingLine; label: string }[] = [
   { field: "earned_runs", label: "ER" },
 ];
 
-function BoxScoreRow({ athlete, line }: { athlete: Athlete; line?: BattingLine }) {
+function PlayerBoxScoreForm({
+  eventId,
+  athlete,
+  line,
+}: {
+  eventId: string;
+  athlete: Athlete;
+  line?: BattingLine;
+}) {
   const value = (field: keyof BattingLine) => String(line?.[field] ?? 0);
   const hasLine = Boolean(line);
 
   return (
-    <details className="border-b border-club-line pb-2 last:border-0" open={hasLine}>
-      <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-bold">
-        <span>
-          {athleteName(athlete)}
-          {athlete.jersey_number !== null ? <span className="muted"> #{athlete.jersey_number}</span> : null}
-        </span>
-        <span className="muted text-xs">{hasLine ? `${line?.pa ?? 0} PA` : "no line"}</span>
-      </summary>
+    <form action={savePlayerBoxScore} className="card card-body flex flex-col gap-2">
+      <input type="hidden" name="event_id" value={eventId} />
+      <input type="hidden" name="athlete_id" value={athlete.id} />
       <input type="hidden" name={`name_${athlete.id}`} value={athleteName(athlete)} />
-      <div className="mt-2 grid grid-cols-4 gap-2">
-        {[...BOX_INPUTS, ...PITCH_INPUTS].map(({ field, label }) => (
-          <div key={field}>
-            <label className="stat-label mb-1 block" htmlFor={`${field}-${athlete.id}`}>
-              {label}
-            </label>
-            <input
-              id={`${field}-${athlete.id}`}
-              name={`${field}_${athlete.id}`}
-              type="number"
-              min={0}
-              step={field === "innings_pitched" ? "0.1" : "1"}
-              inputMode={field === "innings_pitched" ? "decimal" : "numeric"}
-              defaultValue={hasLine ? value(field) : ""}
-              className="input px-2 text-center text-sm"
-              placeholder="0"
-            />
+      <details className="group" open={hasLine}>
+        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-bold">
+          <span>
+            {athleteName(athlete)}
+            {athlete.jersey_number !== null ? <span className="muted"> #{athlete.jersey_number}</span> : null}
+          </span>
+          <span className="muted text-xs font-normal">
+            {hasLine ? `${line?.pa ?? 0} PA · ${hits(line!)} H` : "no stats entered"}
+          </span>
+        </summary>
+        <div className="mt-2 flex flex-col gap-3 pt-2">
+          <div className="grid grid-cols-4 gap-2">
+            {[...BOX_INPUTS, ...PITCH_INPUTS].map(({ field, label }) => (
+              <div key={field}>
+                <label className="stat-label mb-1 block" htmlFor={`${field}-${athlete.id}`}>
+                  {label}
+                </label>
+                <input
+                  id={`${field}-${athlete.id}`}
+                  name={`${field}_${athlete.id}`}
+                  type="number"
+                  min={0}
+                  step={field === "innings_pitched" ? "0.1" : "1"}
+                  inputMode={field === "innings_pitched" ? "decimal" : "numeric"}
+                  defaultValue={hasLine ? value(field) : ""}
+                  className="input px-2 text-center text-sm"
+                  placeholder="0"
+                />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </details>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs text-club-muted">
+              {hasLine ? "Save to update or clear fields to remove" : "Fill fields & save"}
+            </span>
+            <button className="btn-primary btn-sm">
+              Save {athlete.first_name}
+            </button>
+          </div>
+        </div>
+      </details>
+    </form>
   );
 }

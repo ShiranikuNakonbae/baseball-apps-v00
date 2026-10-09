@@ -85,9 +85,20 @@ async function requireRole(allowed: Profile["role"][], path: string): Promise<Pr
 const requireStaff = () => requireRole(["admin", "coach"], "/");
 const requireAdmin = () => requireRole(["admin"], "/admin");
 
+function addDaysToNaive(naive: string, days: number): string {
+  const [datePart = "", timePart = "00:00"] = naive.split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  const newY = dt.getUTCFullYear();
+  const newM = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const newD = String(dt.getUTCDate()).padStart(2, "0");
+  return `${newY}-${newM}-${newD}T${timePart}`;
+}
+
 // ─── Events ──────────────────────────────────────────────────────────────────
 export async function saveEvent(form: FormData) {
   const eventId = uuid(form, "id");
+  const rawTeamId = text(form, "team_id");
   const teamId = uuid(form, "team_id");
   const title = text(form, "title");
   const locationName = text(form, "location_name");
@@ -95,11 +106,14 @@ export async function saveEvent(form: FormData) {
   const end = text(form, "end_time");
   const path = eventId ? `/events/${eventId}` : "/";
   const type = pick(text(form, "type"), EVENT_TYPES) || "practice";
+  const isAllTeams = !eventId && rawTeamId === "all";
+  const recurrence = text(form, "recurrence");
+  const repeatWeeks = !eventId && recurrence === "weekly" ? Math.min(Math.max(int(form, "recurrence_weeks") || 4, 1), 20) : 1;
 
-  if (!teamId || !title || !locationName || !start || !end) {
+  if ((!teamId && !isAllTeams) || !title || !locationName || !start || !end) {
     back(path, "Team, title, location and both times are required.");
   }
-  await requireStaff();
+  const profile = await requireStaff();
 
   let startIso: string;
   let endIso: string;
@@ -113,30 +127,106 @@ export async function saveEvent(form: FormData) {
     back(path, "The end time must be after the start time.");
   }
 
-  const row = {
-    team_id: teamId,
-    title,
-    type,
-    start_time: startIso,
-    end_time: endIso,
-    location_name: locationName,
-    location_url: text(form, "location_url") || null,
-    notes: text(form, "notes") || null,
-  };
-
   const supabase = await createClient();
+
+  if (isAllTeams) {
+    let targetTeamIds: string[] = [];
+    if (profile.role === "admin") {
+      const { data: allTeams } = await supabase.from("teams").select("id");
+      targetTeamIds = (allTeams ?? []).map((t) => t.id);
+    } else {
+      const { data: coachTeams } = await supabase.from("team_coaches").select("team_id").eq("user_id", profile.id);
+      targetTeamIds = (coachTeams ?? []).map((t) => t.team_id);
+    }
+    if (targetTeamIds.length === 0) {
+      back(path, "No teams available to create events for.");
+    }
+    const rows: {
+      team_id: string;
+      title: string;
+      type: (typeof EVENT_TYPES)[number];
+      start_time: string;
+      end_time: string;
+      location_name: string;
+      location_url: string | null;
+      notes: string | null;
+      created_by: string;
+    }[] = [];
+
+    for (let w = 0; w < repeatWeeks; w++) {
+      const weekStartIso = w === 0 ? startIso : clubLocalToIso(addDaysToNaive(start, w * 7));
+      const weekEndIso = w === 0 ? endIso : clubLocalToIso(addDaysToNaive(end, w * 7));
+      for (const tid of targetTeamIds) {
+        rows.push({
+          team_id: tid,
+          title,
+          type,
+          start_time: weekStartIso,
+          end_time: weekEndIso,
+          location_name: locationName,
+          location_url: text(form, "location_url") || null,
+          notes: text(form, "notes") || null,
+          created_by: profile.id,
+        });
+      }
+    }
+
+    const { error } = await supabase.from("events").insert(rows);
+    if (error) back(path, error.message);
+    revalidatePath("/");
+    redirect("/");
+  }
+
   if (eventId) {
+    const row = {
+      team_id: teamId,
+      title,
+      type,
+      start_time: startIso,
+      end_time: endIso,
+      location_name: locationName,
+      location_url: text(form, "location_url") || null,
+      notes: text(form, "notes") || null,
+    };
     const { error } = await supabase.from("events").update(row).eq("id", eventId);
     if (error) back(path, error.message);
     revalidatePath(path);
     revalidatePath("/");
     back(path);
+  } else if (repeatWeeks > 1) {
+    const rows = [];
+    for (let w = 0; w < repeatWeeks; w++) {
+      const weekStartIso = w === 0 ? startIso : clubLocalToIso(addDaysToNaive(start, w * 7));
+      const weekEndIso = w === 0 ? endIso : clubLocalToIso(addDaysToNaive(end, w * 7));
+      rows.push({
+        team_id: teamId,
+        title,
+        type,
+        start_time: weekStartIso,
+        end_time: weekEndIso,
+        location_name: locationName,
+        location_url: text(form, "location_url") || null,
+        notes: text(form, "notes") || null,
+        created_by: profile.id,
+      });
+    }
+    const { error } = await supabase.from("events").insert(rows);
+    if (error) back(path, error.message);
+    revalidatePath("/");
+    redirect("/");
   } else {
-    const { data, error } = await supabase
-      .from("events")
-      .insert({ ...row, created_by: (await getProfile())?.id ?? null })
-      .select("id")
-      .single();
+    const row = {
+      team_id: teamId,
+      title,
+      type,
+      start_time: startIso,
+      end_time: endIso,
+      location_name: locationName,
+      location_url: text(form, "location_url") || null,
+      notes: text(form, "notes") || null,
+      created_by: profile.id,
+    };
+    const { data, error } = await supabase.from("events").insert(row).select("id").single();
     if (error) back(path, error.message);
     revalidatePath("/");
     back(`/events/${data.id}`);
@@ -214,6 +304,45 @@ export async function saveAttendance(form: FormData) {
 }
 
 // ─── Box score ───────────────────────────────────────────────────────────────
+export async function savePlayerBoxScore(form: FormData) {
+  const eventId = uuid(form, "event_id");
+  const athleteId = uuid(form, "athlete_id");
+  const path = `/events/${eventId}`;
+  if (!eventId || !athleteId) back("/", "That box score was malformed.");
+  const profile = await requireStaff();
+
+  const line = Object.fromEntries(
+    BOX_FIELDS.map((field) => [field, count(form, field, athleteId)]),
+  ) as Record<(typeof BOX_FIELDS)[number], number>;
+
+  const touched = BOX_FIELDS.some((field) => text(form, `${field}_${athleteId}`) !== "");
+  const supabase = await createClient();
+
+  if (!touched) {
+    const { error } = await supabase.from("game_stats").delete().eq("event_id", eventId).eq("athlete_id", athleteId);
+    if (error) back(path, error.message);
+  } else {
+    const hits = line.singles + line.doubles + line.triples + line.hr;
+    const label = text(form, `name_${athleteId}`) || "This player";
+    if (hits > line.ab) back(path, `${label}: hits cannot exceed at-bats.`);
+    if (line.ab + line.bb + line.hbp + line.sf > line.pa) {
+      back(path, `${label}: plate appearances must cover at-bats, walks, hit-by-pitch and sacrifices.`);
+    }
+
+    const { error } = await supabase.from("game_stats").upsert(
+      { event_id: eventId, athlete_id: athleteId, ...line, logged_by: profile.id },
+      { onConflict: "event_id,athlete_id" },
+    );
+    if (error) back(path, error.message);
+  }
+
+  revalidatePath(path);
+  revalidatePath("/roster");
+  revalidatePath("/family");
+  revalidatePath(`/athletes/${athleteId}`);
+  back(path);
+}
+
 export async function saveBoxScore(form: FormData) {
   const eventId = uuid(form, "event_id");
   const path = `/events/${eventId}`;

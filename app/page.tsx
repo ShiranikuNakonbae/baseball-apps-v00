@@ -7,11 +7,13 @@ import {
   getAthletesForParent,
   getCoachTeamIds,
   getRecentEvents,
+  getRsvpResponsesForEvents,
   getRsvpSummary,
   getRsvpsForAthletes,
   getSeasonStats,
   getTeams,
   getUpcomingEvents,
+  type EventRsvpDetail,
 } from "@/lib/data";
 import { athleteName, formatDay, formatTimeRange, rate } from "@/lib/format";
 import type { Athlete, ClubEvent, Rsvp, Team } from "@/lib/types";
@@ -51,13 +53,86 @@ function EventCard({ event, children }: { event: ClubEvent; children?: React.Rea
   );
 }
 
-function Headcount({ counts }: { counts: Record<string, number> }) {
+function StaffRsvpPreview({
+  counts,
+  responses = [],
+}: {
+  counts: Record<string, number>;
+  responses?: EventRsvpDetail[];
+}) {
+  const attending = responses.filter((r) => r.status === "attending");
+  const tentative = responses.filter((r) => r.status === "tentative");
+  const notAttending = responses.filter((r) => r.status === "not_attending");
+  const total = responses.length;
+
   return (
-    <p className="text-xs text-club-muted">
-      <span className="font-bold text-club-good">{counts.attending ?? 0}</span> going ·{" "}
-      <span className="font-bold text-club-muted">{counts.tentative ?? 0}</span> maybe ·{" "}
-      <span className="font-bold text-club-bad">{counts.not_attending ?? 0}</span> out
-    </p>
+    <div className="flex flex-col gap-1.5 border-t border-club-line/60 pt-2 text-xs">
+      <div className="row-between">
+        <p className="text-club-muted">
+          <span className="font-bold text-club-good">{counts.attending ?? 0}</span> going ·{" "}
+          <span className="font-bold text-club-muted">{counts.tentative ?? 0}</span> maybe ·{" "}
+          <span className="font-bold text-club-bad">{counts.not_attending ?? 0}</span> out
+        </p>
+        <span className="text-[11px] font-semibold text-club-muted">
+          {total} responded
+        </span>
+      </div>
+
+      {total > 0 ? (
+        <details className="text-xs">
+          <summary className="cursor-pointer font-semibold text-club-accent hover:underline">
+            View responded players ({total})
+          </summary>
+          <div className="mt-2 flex flex-col gap-1 rounded-lg border border-club-line/70 bg-club-raised/60 p-2.5">
+            {attending.length > 0 ? (
+              <div>
+                <span className="font-bold text-club-good">Going: </span>
+                <span className="text-club-text">
+                  {attending
+                    .map(
+                      (r) =>
+                        `${r.athlete ? athleteName(r.athlete) : "Player"}${
+                          r.athlete?.jersey_number !== null ? ` (#${r.athlete?.jersey_number})` : ""
+                        }`,
+                    )
+                    .join(", ")}
+                </span>
+              </div>
+            ) : null}
+            {tentative.length > 0 ? (
+              <div>
+                <span className="font-bold text-club-muted">Maybe: </span>
+                <span className="text-club-text">
+                  {tentative
+                    .map(
+                      (r) =>
+                        `${r.athlete ? athleteName(r.athlete) : "Player"}${
+                          r.athlete?.jersey_number !== null ? ` (#${r.athlete?.jersey_number})` : ""
+                        }`,
+                    )
+                    .join(", ")}
+                </span>
+              </div>
+            ) : null}
+            {notAttending.length > 0 ? (
+              <div>
+                <span className="font-bold text-club-bad">Out: </span>
+                <span className="text-club-text">
+                  {notAttending
+                    .map(
+                      (r) =>
+                        `${r.athlete ? athleteName(r.athlete) : "Player"}${
+                          r.athlete?.jersey_number !== null ? ` (#${r.athlete?.jersey_number})` : ""
+                        }`,
+                    )
+                    .join(", ")}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </details>
+      ) : null}
+    </div>
   );
 }
 
@@ -102,7 +177,11 @@ export default async function SchedulePage({
     [...seasonStats].map(([id, stats]) => [id, stats.avg]),
   );
 
-  const headcount = isParent ? new Map<string, Record<string, number>>() : await getRsvpSummary(upcoming.map((e) => e.id));
+  const upcomingIds = upcoming.map((e) => e.id);
+  const [headcount, rsvpResponses] = await Promise.all([
+    isParent ? Promise.resolve(new Map<string, Record<string, number>>()) : getRsvpSummary(upcomingIds),
+    isParent ? Promise.resolve(new Map<string, EventRsvpDetail[]>()) : getRsvpResponsesForEvents(upcomingIds),
+  ]);
 
   const myRsvps = new Map<string, Rsvp["status"]>();
   if (isParent) {
@@ -147,7 +226,14 @@ export default async function SchedulePage({
           <div className="flex flex-col gap-2">
             {upcoming.map((event) => (
               <EventCard key={event.id} event={event}>
-                {isParent ? <FamilyRsvpLines event={event} athletes={familyAthletes} rsvps={myRsvps} /> : <Headcount counts={headcount.get(event.id) ?? {}} />}
+                {isParent ? (
+                  <FamilyRsvpLines event={event} athletes={familyAthletes} rsvps={myRsvps} />
+                ) : (
+                  <StaffRsvpPreview
+                    counts={headcount.get(event.id) ?? {}}
+                    responses={rsvpResponses.get(event.id) ?? []}
+                  />
+                )}
               </EventCard>
             ))}
           </div>

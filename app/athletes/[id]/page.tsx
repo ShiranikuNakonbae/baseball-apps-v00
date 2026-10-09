@@ -13,7 +13,7 @@ import {
   getGameLog,
   getTeams,
 } from "@/lib/data";
-import { formatDate, hits } from "@/lib/format";
+import { formatDate, hits, initials } from "@/lib/format";
 import { POSITIONS, SIDES } from "@/lib/types";
 import type { Athlete, Profile, Team } from "@/lib/types";
 
@@ -39,7 +39,7 @@ export default async function AthletePage({
     getSeasonStats([athlete.id]),
     getAttendanceStats([athlete.id]),
     getGameLog(athlete.id),
-    isStaff ? getParentsForAthletes([athlete.id]) : Promise.resolve(new Map<string, Profile[]>()),
+    getParentsForAthletes([athlete.id]),
     isStaff ? getTeams() : Promise.resolve([] as Team[]),
   ]);
 
@@ -88,13 +88,24 @@ export default async function AthletePage({
       {linkedParents.length > 0 ? (
         <section className="flex flex-col gap-2">
           <SectionTitle>Guardians</SectionTitle>
-          <StatGrid
-            columns={2}
-            items={linkedParents.map((parent) => ({
-              label: parent.full_name,
-              value: parent.phone_number || parent.email,
-            }))}
-          />
+          <div className="card card-body flex flex-col gap-2">
+            {linkedParents.map((parent) => (
+              <div key={parent.id} className="flex items-center gap-2.5">
+                <span
+                  aria-hidden
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-club-raised text-xs font-bold text-club-accent"
+                >
+                  {initials(parent.full_name)}
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-club-text">{parent.full_name}</span>
+                  {profile.role === "admin" && parent.phone_number ? (
+                    <span className="text-xs text-club-muted">{parent.phone_number}</span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 

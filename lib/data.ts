@@ -41,6 +41,13 @@ export async function getTeams(): Promise<Team[]> {
   return rows<Team>(await sb.from("teams").select("id, name, division, season").order("name"), "load teams");
 }
 
+export type EventRsvpDetail = {
+  event_id: string;
+  athlete_id: string;
+  status: Rsvp["status"];
+  athlete: Pick<Athlete, "id" | "first_name" | "last_name" | "jersey_number"> | null;
+};
+
 /** RSVP counts per event, for the coach headcount view. Parents only see their own rows. */
 export async function getRsvpSummary(eventIds: string[]): Promise<Map<string, Record<string, number>>> {
   const map = new Map<string, Record<string, number>>();
@@ -51,6 +58,23 @@ export async function getRsvpSummary(eventIds: string[]): Promise<Map<string, Re
     const counts = map.get(row.event_id) ?? {};
     counts[row.status] = (counts[row.status] ?? 0) + 1;
     map.set(row.event_id, counts);
+  }
+  return map;
+}
+
+/** Full RSVP responses with athlete details per event, for coaches and admins. */
+export async function getRsvpResponsesForEvents(eventIds: string[]): Promise<Map<string, EventRsvpDetail[]>> {
+  const map = new Map<string, EventRsvpDetail[]>();
+  if (eventIds.length === 0) return map;
+  const sb = await createClient();
+  const result = await sb
+    .from("event_rsvps")
+    .select("event_id, athlete_id, status, athlete:athletes(id, first_name, last_name, jersey_number)")
+    .in("event_id", eventIds);
+  for (const row of rows<EventRsvpDetail>(result, "load rsvp responses")) {
+    const list = map.get(row.event_id) ?? [];
+    list.push(row);
+    map.set(row.event_id, list);
   }
   return map;
 }

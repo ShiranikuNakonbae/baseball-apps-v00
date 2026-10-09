@@ -142,7 +142,7 @@ function RosterRow({
           {parents.map((parent) => (
             <li key={parent.id}>
               {parent.full_name}
-              {parent.phone_number ? ` · ${parent.phone_number}` : ` · ${parent.email}`}
+              {parent.phone_number ? ` · ${parent.phone_number}` : ""}
             </li>
           ))}
         </ul>
