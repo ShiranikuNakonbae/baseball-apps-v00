@@ -10,7 +10,7 @@ export function SiteHeader({ profile }: { profile: Profile | null }) {
         <span aria-hidden className="text-club-accent">
           ⚾
         </span>
-        Club Baseball
+        LABS
       </Link>
       {profile ? (
         <div className="flex items-center gap-2">

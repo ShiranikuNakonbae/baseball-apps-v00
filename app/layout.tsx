@@ -7,7 +7,7 @@ import { getProfile } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Club Baseball",
+  title: "LABS All-In-One",
   description: "Scheduling, attendance, and player stats for baseball clubs.",
 };
 

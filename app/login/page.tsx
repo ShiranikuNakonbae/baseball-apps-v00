@@ -32,7 +32,7 @@ function LoginForm() {
   return (
     <div className="flex flex-col gap-6">
       <header className="pt-6">
-        <h1 className="text-2xl font-bold">Club Baseball</h1>
+        <h1 className="text-2xl font-bold">LABS Baseball Softball Club Bandung</h1>
         <p className="muted">Schedules, attendance and player stats in one place.</p>
       </header>
 
@@ -133,7 +133,7 @@ export default function LoginPage() {
       fallback={
         <div className="flex flex-col gap-6 pt-6">
           <header>
-            <h1 className="text-2xl font-bold">Club Baseball</h1>
+            <h1 className="text-2xl font-bold">LABS Baseball Softball Club Bandung</h1>
             <p className="muted">Loading...</p>
           </header>
         </div>
