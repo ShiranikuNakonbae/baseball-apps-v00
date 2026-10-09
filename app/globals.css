@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  --color-club-bg: #0d1117;
+  --color-club-surface: #161c26;
+  --color-club-raised: #1e2733;
+  --color-club-line: #2b3644;
+  --color-club-text: #e8eef6;
+  --color-club-muted: #93a3b8;
+  --color-club-accent: #f2a541;
+  --color-club-good: #4ec9a0;
+  --color-club-bad: #ef6b6b;
+}
+
+/* Dugout usage: bright sun, small phone, gloved hands. Everything tappable is 44px+. */
+
+/* Registered as utilities so the variants below can @apply them (Tailwind v4). */
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-colors select-none;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-club-accent;
+  @apply disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+@utility badge {
+  @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-bold tracking-wide uppercase;
+}
+
+@layer components {
+  .btn-primary {
+    @apply btn border-club-accent bg-club-accent text-club-bg hover:bg-club-accent/85;
+  }
+  .btn-ghost {
+    @apply btn border-club-line bg-club-raised text-club-text hover:border-club-muted;
+  }
+  .btn-danger {
+    @apply btn border-club-bad/60 bg-transparent text-club-bad hover:bg-club-bad/10;
+  }
+  .btn-sm {
+    @apply min-h-11 px-3 text-xs;
+  }
+
+  .card {
+    @apply rounded-xl border border-club-line bg-club-surface;
+  }
+  .card-head {
+    @apply flex items-center justify-between gap-3 border-b border-club-line px-4 py-3;
+  }
+  .card-title {
+    @apply text-xs font-bold tracking-widest text-club-muted uppercase;
+  }
+  .card-body {
+    @apply p-4;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-semibold tracking-wide text-club-muted uppercase;
+  }
+  .input,
+  .select {
+    @apply min-h-11 w-full rounded-lg border border-club-line bg-club-raised px-3 text-base text-club-text placeholder:text-club-muted/60;
+    @apply focus:border-club-accent focus:outline-none;
+  }
+  .select {
+    @apply appearance-none pr-8;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-bold tracking-wide uppercase;
+  }
+  .badge-practice {
+    @apply badge bg-club-good/15 text-club-good;
+  }
+  .badge-game {
+    @apply badge bg-club-accent/15 text-club-accent;
+  }
+  .badge-meeting,
+  .badge-event {
+    @apply badge bg-club-muted/15 text-club-muted;
+  }
+
+  .stat {
+    @apply flex flex-col items-center justify-center gap-1 rounded-lg bg-club-raised py-3;
+  }
+  .stat-value {
+    @apply text-xl font-bold tabular-nums text-club-text;
+  }
+  .stat-label {
+    @apply text-[10px] font-bold tracking-widest text-club-muted uppercase;
+  }
+
+  .row-between {
+    @apply flex min-h-11 items-center justify-between gap-3;
+  }
+  .link {
+    @apply text-club-accent underline-offset-4 hover:underline;
+  }
+  .muted {
+    @apply text-sm text-club-muted;
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-club-bg text-club-text antialiased;
+}
+
+/* Coaches tabulate numbers with the phone keyboard; keep it numeric. */
+input[type="number"] {
+  -moz-appearance: textfield;
+}

@@ -1,0 +1,8 @@
+# Taste
+- Runs Windows, with project folders inside OneDrive (`C:\Users\surat\OneDrive\Documents\...`). Shell work must use cmd/PowerShell idioms (`dir`, `type`, `copy`, `set VAR=value&&`, `2>nul`, `more +0`); POSIX-isms like `ls -la`, `tail -3`, `>nul`-free redirection and bare `&&` chains misbehave or fail outright here. Confidence: 0.85
+- Node 24 + npm 11, with Docker (running daemon) available, so throwaway containers are a viable way to validate database work locally instead of assuming a hosted instance. Confidence: 0.7
+- Node 24 can load TypeScript modules natively when imports use explicit `.ts` extensions, which makes `node --test` a zero-dependency test runner (no ts-node/vitest needed) as long as `allowImportingTsExtensions` is set. Confidence: 0.6
+- Works in the UTC+8 / `Asia/Jakarta` (WIB) region — picked `Asia/Jakarta` as the display timezone when offered, and cloud projects sit in `ap-southeast-1`. Do not assume US/European local time. Confidence: 0.6
+- The shell exports `NODE_ENV=production` globally, so `npm install` silently skips devDependencies here; an `.npmrc` with `include=dev` is needed for builds that depend on dev tooling. Confidence: 0.7
+- When asking "what should I do to make this live", wants a detailed, ordered, phase-by-phase runbook with exact commands and dashboard clicks — explicitly asked for "in detail" rather than a summary. Confidence: 0.65
+- Prefers instructions grounded in their actual account/machine (inspect first, then give concrete values) over generic checklists; accepts recommended options and is comfortable letting the agent apply changes to live cloud infrastructure once asked. Confidence: 0.55
