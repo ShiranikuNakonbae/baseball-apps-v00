@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { saveAthlete } from "@/app/actions/club";
+import { SubmitButton } from "@/components/submit-button";
 import { EmptyState, ErrorBanner, Field, SectionTitle } from "@/components/ui";
 import { requireProfile } from "@/lib/auth";
 import {
@@ -164,7 +165,7 @@ function AthleteForm({ teams }: { teams: { id: string; name: string }[] }) {
         <Field label="Jersey" name="jersey_number" type="number" min={0} max={99} inputMode="numeric" />
         <Field label="Date of birth" name="date_of_birth" type="date" />
       </div>
-      <button className="btn-primary">Add athlete</button>
+      <SubmitButton pendingLabel="Adding…">Add athlete</SubmitButton>
     </form>
   );
 }

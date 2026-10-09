@@ -1,4 +1,5 @@
 import { saveTeam } from "@/app/actions/club";
+import { SubmitButton } from "@/components/submit-button";
 import { Field } from "@/components/ui";
 import { DIVISIONS } from "@/lib/types";
 import type { Team } from "@/lib/types";
@@ -17,7 +18,7 @@ export function TeamForm({ team }: { team?: Team }) {
         defaultValue={team?.division ?? "minor"}
       />
       <Field label="Season" name="season" defaultValue={team?.season ?? "Spring 2026"} required />
-      <button className="btn-primary">{team ? "Save team" : "Create team"}</button>
+      <SubmitButton>{team ? "Save team" : "Create team"}</SubmitButton>
     </form>
   );
 }

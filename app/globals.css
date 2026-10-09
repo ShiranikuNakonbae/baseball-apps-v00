@@ -52,6 +52,10 @@
     @apply p-4;
   }
 
+  .skeleton {
+    @apply animate-pulse rounded-md bg-club-muted/20;
+  }
+
   .label {
     @apply mb-1 block text-xs font-semibold tracking-wide text-club-muted uppercase;
   }
