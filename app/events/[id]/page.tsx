@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { deleteEvent, saveAttendance, savePlayerBoxScore, setRsvp } from "@/app/actions/club";
 import { EventForm } from "@/components/event-form";
+import { SubmitButton } from "@/components/submit-button";
 import { EmptyState, ErrorBanner, SectionTitle } from "@/components/ui";
 import { requireProfile } from "@/lib/auth";
 import { getAthletesForParent, getEventBundle, getTeams } from "@/lib/data";
@@ -155,8 +156,13 @@ export default async function EventPage({
                 current={attendanceOf.get(athlete.id)}
               />
             ))}
-            <button className="btn-primary">Save attendance</button>
+            <SubmitButton pendingLabel="Saving…">Save attendance</SubmitButton>
           </form>
+          {profile.role === "admin" ? (
+            <a href={`/events/${event.id}/attendance.csv`} className="btn-ghost">
+              Download attendance (CSV)
+            </a>
+          ) : null}
         </section>
       ) : null}
 
