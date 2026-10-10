@@ -340,9 +340,9 @@ function PlayerBoxScoreForm({
             <span className="text-xs text-club-muted">
               {hasLine ? "Save to update or clear fields to remove" : "Fill fields & save"}
             </span>
-            <button className="btn-primary btn-sm">
+            <SubmitButton pendingLabel="Saving…" className="btn-primary btn-sm">
               Save {athlete.first_name}
-            </button>
+            </SubmitButton>
           </div>
         </div>
       </details>
