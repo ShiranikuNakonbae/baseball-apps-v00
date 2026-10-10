@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-club-bg: #0d1117;
-  --color-club-surface: #161c26;
-  --color-club-raised: #1e2733;
-  --color-club-line: #2b3644;
-  --color-club-text: #e8eef6;
-  --color-club-muted: #93a3b8;
-  --color-club-accent: #f2a541;
-  --color-club-good: #4ec9a0;
-  --color-club-bad: #ef6b6b;
+  /* Light theme, shadcn-style (zinc neutrals, near-black primary). */
+  --color-club-bg: #fafafa;
+  --color-club-surface: #ffffff;
+  --color-club-raised: #f4f4f5;
+  --color-club-line: #e4e4e7;
+  --color-club-text: #18181b;
+  --color-club-muted: #71717a;
+  --color-club-accent: #18181b;
+  --color-club-good: #16a34a;
+  --color-club-bad: #dc2626;
 }
 
 /* Dugout usage: bright sun, small phone, gloved hands. Everything tappable is 44px+. */
@@ -27,7 +28,7 @@
 
 @layer components {
   .btn-primary {
-    @apply btn border-club-accent bg-club-accent text-club-bg hover:bg-club-accent/85;
+    @apply btn border-club-accent bg-club-accent text-white hover:bg-club-accent/85;
   }
   .btn-ghost {
     @apply btn border-club-line bg-club-raised text-club-text hover:border-club-muted;
@@ -79,7 +80,7 @@
   }
   .badge-meeting,
   .badge-event {
-    @apply badge bg-club-muted/15 text-club-muted;
+    @apply badge bg-club-raised text-club-muted;
   }
 
   .stat {
@@ -104,7 +105,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
