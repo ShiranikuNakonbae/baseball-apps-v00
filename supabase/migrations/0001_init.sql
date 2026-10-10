@@ -287,10 +287,11 @@ CREATE POLICY athletes_select ON public.athletes
     );
 CREATE POLICY athletes_admin_write ON public.athletes
     FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
--- A coach manages their own roster but cannot move an athlete onto another team.
+-- A coach manages their own roster, may re-assign an athlete to a team they
+-- coach (or clear the assignment), but cannot move them onto a foreign team.
 CREATE POLICY athletes_coach_write ON public.athletes
     FOR UPDATE USING (public.is_team_coach(team_id))
-    WITH CHECK (public.is_team_coach(team_id));
+    WITH CHECK (public.is_team_coach(team_id) OR team_id IS NULL);
 
 -- parent_athletes: linking is management-only, otherwise a parent could attach
 -- themselves to any child in the club.
@@ -310,9 +311,15 @@ CREATE POLICY events_select ON public.events
         OR public.is_team_coach(team_id)
         OR public.is_parent_in_team(team_id)
     );
-CREATE POLICY events_write ON public.events
-    FOR ALL USING (public.is_admin() OR public.is_team_coach(team_id))
+-- Creating a schedule item is management-only; coaches edit and delete the
+-- events that exist for their teams.
+CREATE POLICY events_insert ON public.events
+    FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY events_update ON public.events
+    FOR UPDATE USING (public.is_admin() OR public.is_team_coach(team_id))
     WITH CHECK (public.is_admin() OR public.is_team_coach(team_id));
+CREATE POLICY events_delete ON public.events
+    FOR DELETE USING (public.is_admin() OR public.is_team_coach(team_id));
 
 -- event_rsvps: coaches/admins read the headcount, parents write for their athlete.
 CREATE POLICY event_rsvps_select ON public.event_rsvps

@@ -113,7 +113,8 @@ export async function saveEvent(form: FormData) {
   if ((!teamId && !isAllTeams) || !title || !locationName || !start || !end) {
     back(path, "Team, title, location and both times are required.");
   }
-  const profile = await requireStaff();
+  // Creating is admin-only; editing stays staff-wide (matches the RLS policies).
+  const profile = eventId ? await requireStaff() : await requireRole(["admin"], path);
 
   let startIso: string;
   let endIso: string;
@@ -469,9 +470,9 @@ export async function saveAthlete(form: FormData) {
     date_of_birth: dob,
   };
 
-  if (isAdmin) {
-    row.team_id = teamId || null;
-  }
+  // Team assignment (including re-assignment) is allowed for staff; RLS limits
+  // coaches to teams they coach, admins to any team.
+  row.team_id = teamId || null;
 
   const supabase = await createClient();
   if (athleteId) {

@@ -117,7 +117,7 @@ export default async function AthletePage({
               Profile details and team assignment
             </summary>
             <div className="flex flex-col gap-4 border-t border-club-line p-4">
-              <EditForm athlete={athlete} teams={teams} isAdmin={profile.role === "admin"} />
+              <EditForm athlete={athlete} teams={teams} />
               <form action={deleteAthlete}>
                 <input type="hidden" name="id" value={athlete.id} />
                 <button className="btn-danger w-full">Remove athlete</button>
@@ -130,7 +130,7 @@ export default async function AthletePage({
   );
 }
 
-function EditForm({ athlete, teams, isAdmin }: { athlete: Athlete; teams: Team[]; isAdmin: boolean }) {
+function EditForm({ athlete, teams }: { athlete: Athlete; teams: Team[] }) {
   return (
     <form action={saveAthlete} className="flex flex-col gap-3">
       <input type="hidden" name="athlete_id" value={athlete.id} />
@@ -169,14 +169,12 @@ function EditForm({ athlete, teams, isAdmin }: { athlete: Athlete; teams: Team[]
         <Field label="Bats" name="bats" options={sideOptions} defaultValue={athlete.bats} />
         <Field label="Throws" name="throws" options={sideOptions} defaultValue={athlete.throws} />
       </div>
-      {isAdmin ? (
-        <Field
-          label="Team"
-          name="team_id"
-          options={[{ value: "", label: "Unassigned" }, ...teams.map((t) => ({ value: t.id, label: t.name }))]}
-          defaultValue={athlete.team_id ?? ""}
-        />
-      ) : null}
+      <Field
+        label="Team"
+        name="team_id"
+        options={[{ value: "", label: "Unassigned" }, ...teams.map((t) => ({ value: t.id, label: t.name }))]}
+        defaultValue={athlete.team_id ?? ""}
+      />
       <button className="btn-primary">Save athlete</button>
     </form>
   );

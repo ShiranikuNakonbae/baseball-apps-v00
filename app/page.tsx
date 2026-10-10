@@ -5,7 +5,6 @@ import { EmptyState, ErrorBanner, SectionTitle } from "@/components/ui";
 import { requireProfile } from "@/lib/auth";
 import {
   getAthletesForParent,
-  getCoachTeamIds,
   getRecentEvents,
   getRsvpResponsesForEvents,
   getRsvpSummary,
@@ -164,11 +163,10 @@ export default async function SchedulePage({
   const { error } = await searchParams;
   const isParent = profile.role === "parent";
 
-  const [upcoming, recent, familyAthletes, coachTeamIds, allTeams] = await Promise.all([
+  const [upcoming, recent, familyAthletes, allTeams] = await Promise.all([
     getUpcomingEvents(),
     isParent ? Promise.resolve([] as ClubEvent[]) : getRecentEvents(),
     isParent ? getAthletesForParent(profile.id) : Promise.resolve([] as Athlete[]),
-    isParent ? Promise.resolve([] as string[]) : getCoachTeamIds(profile.id),
     getTeams(),
   ]);
 
@@ -190,9 +188,8 @@ export default async function SchedulePage({
     }
   }
 
-  const teamIdsForNewEvent: string[] =
-    profile.role === "parent" ? [] : profile.role === "coach" ? coachTeamIds : allTeams.map((t) => t.id);
-  const teamsForNewEvent: Team[] = allTeams.filter((t) => teamIdsForNewEvent.includes(t.id));
+  // Only admins create events; coaches manage the ones that exist.
+  const teamsForNewEvent: Team[] = profile.role === "admin" ? allTeams : [];
 
   return (
     <div className="flex flex-col gap-5">
