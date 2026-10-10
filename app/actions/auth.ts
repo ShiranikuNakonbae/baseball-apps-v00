@@ -8,7 +8,11 @@ import { createClient } from "@/lib/supabase/server";
 export type FormState = { error?: string; message?: string } | null;
 
 function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  // Same contract as the Supabase vars: fail loudly rather than sending magic
+  // links to localhost in production.
+  const url = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_SITE_URL is not set");
+  return url;
 }
 
 function value(form: FormData, name: string) {

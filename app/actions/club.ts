@@ -113,8 +113,8 @@ export async function saveEvent(form: FormData) {
   if ((!teamId && !isAllTeams) || !title || !locationName || !start || !end) {
     back(path, "Team, title, location and both times are required.");
   }
-  // Creating is admin-only; editing stays staff-wide (matches the RLS policies).
-  const profile = eventId ? await requireStaff() : await requireRole(["admin"], path);
+  // Events are managed by the club admin only; coaches work around them.
+  const profile = await requireRole(["admin"], path);
 
   let startIso: string;
   let endIso: string;
@@ -237,7 +237,7 @@ export async function saveEvent(form: FormData) {
 export async function deleteEvent(form: FormData) {
   const eventId = uuid(form, "id");
   if (!eventId) back("/", "That event is missing.");
-  await requireStaff();
+  await requireAdmin();
 
   const supabase = await createClient();
   const { error } = await supabase.from("events").delete().eq("id", eventId);

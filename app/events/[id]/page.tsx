@@ -185,7 +185,7 @@ export default async function EventPage({
         </section>
       ) : null}
 
-      {isStaff ? (
+      {profile.role === "admin" ? (
         <section className="flex flex-col gap-2">
           <SectionTitle>Edit event</SectionTitle>
           <details className="card">
