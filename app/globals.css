@@ -116,3 +116,35 @@ body {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* A tapped submit button spins until its server action redirects. Attribute selector
+   rather than .btn, because the variants compose .btn via @apply and never carry
+   the class name in the markup. */
+[data-pending="true"] {
+  cursor: progress;
+}
+
+[data-pending="true"]::after {
+  content: "";
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: pending-spin 0.6s linear infinite;
+}
+
+@keyframes pending-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-pending="true"]::after {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+

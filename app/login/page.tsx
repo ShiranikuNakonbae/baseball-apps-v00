@@ -70,7 +70,7 @@ function LoginForm() {
             autoComplete="current-password"
             required
           />
-          <button className="btn-primary" disabled={busy}>
+          <button className="btn-primary" disabled={busy} data-pending={busy ? "true" : "false"}>
             Sign in
           </button>
           <Message state={signInState} />
@@ -98,7 +98,7 @@ function LoginForm() {
             required
           />
           <p className="muted">New accounts start as a parent. A club admin links your athlete and sets roles.</p>
-          <button className="btn-primary" disabled={busy}>
+          <button className="btn-primary" disabled={busy} data-pending={busy ? "true" : "false"}>
             Create account
           </button>
           <Message state={signUpState} />
@@ -111,7 +111,7 @@ function LoginForm() {
         </label>
         <div className="flex gap-2">
           <input className="input" id="link-email" name="email" type="email" autoComplete="email" required />
-          <button className="btn-ghost shrink-0" disabled={busy}>
+          <button className="btn-ghost shrink-0" disabled={busy} data-pending={busy ? "true" : "false"}>
             Send link
           </button>
         </div>

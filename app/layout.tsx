@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { NavTabs } from "@/components/nav-tabs";
 import { SiteHeader } from "@/components/site-header";
+import { SubmitFeedback } from "@/components/submit-feedback";
 import { getProfile } from "@/lib/auth";
 
 import "./globals.css";
@@ -24,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="min-h-dvh">
+        <SubmitFeedback />
         <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
           <SiteHeader profile={profile} />
           <main className="flex-1 px-4 pt-4 pb-28">{children}</main>
